@@ -24,7 +24,7 @@ input:focus{border-color:var(--gold)}
 .btn{margin-top:14px;padding:14px;border:0;border-radius:13px;font:inherit;font-weight:800;cursor:pointer;display:block;text-align:center;text-decoration:none}
 .btn.primary{background:linear-gradient(135deg,#ffd75e,#f0b90b);color:#141a00}
 .btn.ghost{background:#1b2635;color:#cfd9e6;border:1px solid var(--line);padding:11px 16px;margin:8px 0 0;font-size:13.5px;border-radius:11px;width:100%}
-.btn.tg{background:linear-gradient(135deg,#2AABEE,#229ED9);color:#fff;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:12px}
+.btn.copy{background:#1b2635;color:#ffd75e;border:1px solid var(--gold);padding:11px 16px;margin:8px 0 0;font-size:13.5px;border-radius:11px;width:100%}
 .hint{font-size:12px;color:var(--muted);text-align:center;margin-top:10px;line-height:1.7}
 .msg{margin-top:12px;font-size:13.5px;text-align:center;border-radius:11px;padding:10px;display:none}
 .msg.err{display:block;background:rgba(255,80,80,.1);color:#ff8a8a;border:1px solid rgba(255,80,80,.25)}
@@ -86,7 +86,7 @@ input:focus{border-color:var(--gold)}
 <label>كلمة المرور</label>
 <input type="password" id="regPass" placeholder="••••••••" required>
 <button class="btn primary" type="submit">إنشاء الحساب</button>
-<p class="hint">بعد التسجيل ستُفتح تليجرام تلقائياً برسالة جاهزة. أرسلها للفريق.</p>
+<p class="hint">بعد التسجيل سيُنسخ نص رسالتك تلقائياً وتُفتح تليجرام.</p>
 </form>
 <div id="authMsg" class="msg"></div>
 </div>
@@ -100,18 +100,18 @@ input:focus{border-color:var(--gold)}
 
 <div class="steps">
 <b>① اضغط الزر الأصفر</b><br>
-سيُحمَّل ملفك وتفتح تليجرام برسالة جاهزة.<br>
+يُحمَّل ملفك، وتُنسخ الرسالة تلقائياً، وتفتح تليجرام.<br>
 <b>② في تليجرام</b><br>
-اضغط إرسال — الرسالة تحتوي كل بياناتك.<br>
-<b>③ إن أردت</b><br>
-أرفق الملف بـ 📎 (اختياري).<br>
-<b>④ انتظر</b> — يُفعّل حسابك تلقائياً.
+اضغط ضغطة طويلة → <b>لصق</b> → إرسال.<br>
+<b>③ انتظر</b> — يُفعّل حسابك تلقائياً عند رفع الفريق للملف.
 </div>
 
 <button class="btn primary" id="sendBtn" type="button">📩 إرسال بياناتي إلى الفريق</button>
+<button class="btn copy" id="copyBtn" type="button">📋 نسخ الرسالة فقط</button>
+<a class="btn ghost" id="tgBtn" target="_blank" rel="noopener" style="margin-top:10px;text-align:center">✈ فتح تليجرام</a>
 
 <div class="steps" style="margin-top:14px">
-<b>الرسالة التي ستُرسَل:</b>
+<b>الرسالة التي ستُنسخ:</b>
 <div class="msgPreview" id="msgPreview">—</div>
 </div>
 
@@ -155,7 +155,7 @@ const GITHUB_USER  = "abdhabdllmohmoad-eng";
 const GITHUB_REPO  = "akk-platform";
 const GITHUB_BRANCH= "main";
 const RAW_BASE     = "https://raw.githubusercontent.com/" + GITHUB_USER + "/" + GITHUB_REPO + "/" + GITHUB_BRANCH + "/";
-const TELEGRAM_USER= "Akk_Currency";   // بدون @
+const TELEGRAM_USER= "Akk_Currency";
 const TELEGRAM_URL = "https://t.me/" + TELEGRAM_USER;
 const RATE         = 1.5863;
 const CHECK_EVERY  = 15000;
@@ -195,7 +195,6 @@ async function checkApproval(phone){
   }catch(e){ return false; }
 }
 
-/* ========== التسجيل ========== */
 $("registerForm").addEventListener("submit", e => {
   e.preventDefault();
   const name = $("regName").value.trim();
@@ -214,7 +213,6 @@ $("registerForm").addEventListener("submit", e => {
   setTimeout(sendToTelegram, 500);
 });
 
-/* ========== الدخول ========== */
 $("loginForm").addEventListener("submit", async e => {
   e.preventDefault();
   const phone = normPhone($("loginPhone").value);
@@ -229,7 +227,6 @@ $("loginForm").addEventListener("submit", async e => {
   if (approved) openDashboard(); else openPending();
 });
 
-/* ========== بناء نص الرسالة ========== */
 function buildMessage(u){
   return "🔔 طلب تفعيل حساب Akk\n"
        + "───────────────\n"
@@ -239,9 +236,7 @@ function buildMessage(u){
        + "⏱ لحظة الانضمام (ms): " + u.joined + "\n"
        + "💠 العملة: Akk\n"
        + "───────────────\n"
-       + "⚠️ المطلوب من الفريق:\n"
-       + "إنشاء ملف باسم: " + u.phone + ".html\n"
-       + "ورفعه في المستودع.";
+       + "⚠️ الفريق: أنشئ ملفاً باسم " + u.phone + ".html وارفعه في المستودع.";
 }
 
 function openPending(){
@@ -252,6 +247,7 @@ function openPending(){
   $("pendingView").classList.remove("hidden");
   $("pPhone").textContent = u.phone;
   $("msgPreview").textContent = buildMessage(u);
+  $("tgBtn").href = TELEGRAM_URL;
 
   checkApproval(u.phone).then(applyApproval);
   clearInterval(checkTimer);
@@ -269,7 +265,30 @@ function applyApproval(approved){
   }
 }
 
-/* ========== إرسال: تحميل الملف + فتح تليجرام برسالة جاهزة ========== */
+/* ========== نسخ نص إلى الحافظة (يعمل على كل الأجهزة) ========== */
+async function copyText(text){
+  try{
+    if (navigator.clipboard && window.isSecureContext){
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  }catch(e){}
+  /* fallback قديم */
+  try{
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.left = "-9999px";
+    ta.style.top = "0";
+    document.body.appendChild(ta);
+    ta.focus(); ta.select();
+    ta.setSelectionRange(0, ta.value.length);
+    const ok = document.execCommand("copy");
+    document.body.removeChild(ta);
+    return ok;
+  }catch(e){ return false; }
+}
+
 function buildAccountHTML(u){
   return '<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8">'
   + '<title>حساب Akk - ' + esc(u.phone) + '</title>'
@@ -300,10 +319,14 @@ function buildAccountHTML(u){
   + 't();setInterval(t,1000);<\/script></body></html>';
 }
 
-function sendToTelegram(){
+async function sendToTelegram(){
   const u = users[session]; if (!u) return;
+  const text = buildMessage(u);
 
-  /* 1) تنزيل الملف */
+  /* 1) نسخ الرسالة للحافظة أولاً */
+  const copied = await copyText(text);
+
+  /* 2) تنزيل الملف */
   const html = buildAccountHTML(u);
   const blob = new Blob([html], {type:"text/html;charset=utf-8"});
   const url  = URL.createObjectURL(blob);
@@ -315,15 +338,21 @@ function sendToTelegram(){
   document.body.removeChild(a);
   setTimeout(()=>URL.revokeObjectURL(url), 2000);
 
-  /* 2) فتح تليجرام مع الرسالة الجاهزة (pre-filled text) */
-  const text = encodeURIComponent(buildMessage(u));
-  const tgDeep = "https://t.me/" + TELEGRAM_USER + "?text=" + text;
-  setTimeout(()=>{ window.open(tgDeep, "_blank"); }, 800);
+  /* 3) إشعار */
+  $("pStatus").textContent = copied ? "✅ نُسخت الرسالة — افتح تليجرام والصقها" : "⚠️ انسخ الرسالة يدوياً ثم افتح تليجرام";
+
+  /* 4) فتح تليجرام (بدون text لتفادي مشاكل الملء) */
+  setTimeout(()=>{ window.location.href = TELEGRAM_URL; }, 900);
 }
 
 $("sendBtn").addEventListener("click", sendToTelegram);
 
-/* ========== لوحة التعدين ========== */
+$("copyBtn").addEventListener("click", async ()=>{
+  const u = users[session]; if (!u) return;
+  const ok = await copyText(buildMessage(u));
+  $("pStatus").textContent = ok ? "✅ تم نسخ الرسالة" : "❌ تعذّر النسخ — حدد النص يدوياً";
+});
+
 function openDashboard(){
   const u = users[session];
   if (!u) return;

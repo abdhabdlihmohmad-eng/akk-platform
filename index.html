@@ -80,6 +80,7 @@ input:focus{border-color:var(--gold)}
 <label>كلمة المرور</label>
 <input type="password" id="loginPass" placeholder="••••••••" required>
 <button class="btn primary" type="submit">دخول</button>
+<p class="hint">أدخل رقمك مع أي كلمة مرور — سيُفتح حسابك إذا كنت موافقاً عليه.</p>
 </form>
 <form id="registerForm" class="form hidden">
 <label>الاسم الكامل</label>
@@ -146,7 +147,6 @@ input:focus{border-color:var(--gold)}
 </div>
 </div>
 
-<!-- ===== زر دخول الفريق (سري) ===== -->
 <div class="teamDot">
   <a href="#" id="teamAccess" title="">•</a>
 </div>
@@ -238,18 +238,44 @@ $("registerForm").addEventListener("submit", e => {
   setTimeout(sendToTelegram, 500);
 });
 
-/* ============ الدخول ============ */
+/* ============ الدخول (يعمل من أي جهاز) ============ */
 $("loginForm").addEventListener("submit", async e => {
   e.preventDefault();
   const phone = normPhone($("loginPhone").value);
-  const pass = $("loginPass").value;
-  const u = localUsers[phone];
-  if (!u) return authMsg("لا يوجد حساب بهذا الرقم على هذا الجهاز.","err");
+  const pass  = $("loginPass").value;
+  if (!phone || !pass) return authMsg("أدخل الرقم وكلمة المرور","err");
+
+  let u = localUsers[phone];
+
+  /* ① حساب غير موجود محلياً → ابحث في users.json */
+  if (!u){
+    const approved = await checkApproval(phone);
+    if (!approved){
+      return authMsg("لا يوجد حساب بهذا الرقم. أنشئ حساباً جديداً.","err");
+    }
+    /* أنشئ سجلاً محلياً على هذا الجهاز */
+    localUsers[phone] = {
+      name: approved.name || "",
+      phone: phone,
+      pass: hashPass(pass),
+      joined: approved.joined || Date.now()
+    };
+    saveLocal(localUsers);
+    session = phone;
+    localStorage.setItem(SESSION_KEY, session);
+    $("loginForm").reset();
+    openDashboard();
+    return;
+  }
+
+  /* ② حساب موجود محلياً → تحقق من كلمة المرور */
   if (u.pass !== hashPass(pass)) return authMsg("كلمة المرور غير صحيحة.","err");
+
   session = phone;
   localStorage.setItem(SESSION_KEY, session);
   $("loginForm").reset();
 
+  /* ③ تأكد أنه موافق عليه من الفريق */
   const approved = await checkApproval(phone);
   if (approved){
     localUsers[phone].joined = approved.joined || localUsers[phone].joined;
@@ -353,7 +379,7 @@ function openDashboard(){
   $("authView").classList.add("hidden");
   $("dashView").classList.remove("hidden");
   currentUser = u;
-  $("dName").textContent = u.name;
+  $("dName").textContent = u.name || "—";
   $("dPhone").textContent = u.phone;
   $("dAcc").textContent = "AKK-" + u.phone;
   $("dJoined").textContent = fmtDate(u.joined);

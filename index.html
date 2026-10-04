@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Akk — منصة التعدين</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0a0e14;--line:#1f2b3a;--txt:#e7ecf3;--muted:#8aa0b8;--gold:#f0b90b;--green:#16c784}
+body{font-family:"Segoe UI",Tahoma,sans-serif;background:radial-gradient(900px 500px at 85% -10%,#1a2b45,transparent 60%),radial-gradient(700px 400px at 0% 105%,#123024,transparent 55%),var(--bg);background-attachment:fixed;color:var(--txt);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px 14px}
+.wrap{width:100%;max-width:530px}
+.brand{text-align:center;margin-bottom:16px}
+.coin{width:64px;height:64px;border-radius:50%;margin:0 auto 10px;display:grid;place-items:center;font-weight:900;font-size:26px;color:#0a0e14;background:linear-gradient(145deg,#ffd75e,#f0b90b 60%,#b98a00);box-shadow:0 10px 30px rgba(240,185,11,.35)}
+.brand h1{font-size:24px}.brand p{color:var(--muted);font-size:13px;margin-top:4px}
+.card{background:linear-gradient(180deg,#121a26,#0e141d);border:1px solid var(--line);border-radius:22px;padding:22px;box-shadow:0 24px 60px rgba(0,0,0,.55)}
+.hidden{display:none!important}
+.tabs{display:flex;gap:8px;background:#0c1219;padding:5px;border-radius:14px;margin-bottom:16px}
+.tab{flex:1;padding:11px;border:0;border-radius:10px;background:transparent;color:var(--muted);font:inherit;font-weight:700;cursor:pointer}
+.tab.active{background:#1b2635;color:#fff}
+.form{display:flex;flex-direction:column;gap:7px}
+label{font-size:12.5px;color:var(--muted);margin-top:6px}
+input{padding:13px 14px;border-radius:12px;border:1px solid var(--line);background:#0b1119;color:var(--txt);font:inherit;font-size:16px;outline:none;width:100%}
+input:focus{border-color:var(--gold)}
+.btn{margin-top:14px;padding:14px;border:0;border-radius:13px;font:inherit;font-weight:800;cursor:pointer}
+.btn.primary{background:linear-gradient(135deg,#ffd75e,#f0b90b);color:#141a00}
+.btn.ghost{background:#1b2635;color:#cfd9e6;border:1px solid var(--line);padding:11px 16px;margin:8px 0 0;font-size:13.5px;border-radius:11px;width:100%}
+.btn.tg{background:linear-gradient(135deg,#2AABEE,#229ED9);color:#fff;display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none}
+.hint{font-size:12px;color:var(--muted);text-align:center;margin-top:10px;line-height:1.7}
+.msg{margin-top:12px;font-size:13.5px;text-align:center;border-radius:11px;padding:10px;display:none}
+.msg.err{display:block;background:rgba(255,80,80,.1);color:#ff8a8a;border:1px solid rgba(255,80,80,.25)}
+.msg.ok{display:block;background:rgba(22,199,132,.1);color:#3ee0a4;border:1px solid rgba(22,199,132,.25)}
+.waiting{text-align:center;padding:10px 0}
+.spin{width:56px;height:56px;border-radius:50%;margin:6px auto 16px;border:5px solid #1f2b3a;border-top-color:var(--gold);animation:sp 1s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.waiting h2{font-size:19px;margin-bottom:8px}
+.waiting p{color:var(--muted);font-size:13.5px;line-height:1.8}
+.steps{text-align:right;background:#0d141d;border:1px solid var(--line);border-radius:14px;padding:14px;margin:16px 0;font-size:13px;line-height:2}
+.steps b{color:var(--gold)}
+.statusBox{background:#0d141d;border:1px dashed #2a3a4f;border-radius:12px;padding:12px;margin-top:14px;font-size:13px;color:var(--muted)}
+.statusBox b{color:#e7ecf3;direction:ltr;display:inline-block}
+.userbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px}
+.uname{font-weight:800;font-size:16px}
+.uphone{color:var(--muted);font-size:12.5px;direction:ltr;text-align:right}
+.balanceCard{text-align:center;padding:22px 14px;border-radius:18px;background:linear-gradient(160deg,#10202c,#0d1720);border:1px solid #1d3a34;margin-bottom:16px}
+.balanceCard .label{color:var(--muted);font-size:12.5px}
+.balance{font-size:36px;font-weight:900;color:var(--green);direction:ltr;margin:8px 0 6px;word-break:break-all}
+.balance .unit{font-size:16px;color:var(--gold);font-weight:800}
+.live{display:inline-flex;align-items:center;gap:7px;font-size:12px;color:#3ee0a4;background:rgba(22,199,132,.08);border:1px solid rgba(22,199,132,.2);padding:5px 12px;border-radius:20px}
+.dot{width:7px;height:7px;border-radius:50%;background:#16c784;animation:pulse 1.6s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(22,199,132,.6)}70%{box-shadow:0 0 0 9px rgba(22,199,132,0)}100%{box-shadow:0 0 0 0 rgba(22,199,132,0)}}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat{background:#0d141d;border:1px solid var(--line);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:5px}
+.stat span{color:var(--muted);font-size:11.5px}
+.stat b{font-size:13.5px;color:#dfe8f3;direction:ltr;text-align:right}
+.stat b.ar{direction:rtl;font-size:13px}
+@media(max-width:420px){.balance{font-size:29px}.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="brand">
+<div class="coin">A</div>
+<h1>Akk</h1>
+<p>منصة التعدين والاستثمار السحابي</p>
+</div>
+<div class="card">
+
+<div id="authView">
+<div class="tabs">
+<button class="tab active" data-tab="login" type="button">دخول</button>
+<button class="tab" data-tab="register" type="button">حساب جديد</button>
+</div>
+<form id="loginForm" class="form">
+<label>رقم الهاتف</label>
+<input type="tel" id="loginPhone" dir="ltr" placeholder="7XXXXXXXX" required>
+<label>كلمة المرور</label>
+<input type="password" id="loginPass" placeholder="••••••••" required>
+<button class="btn primary" type="submit">دخول</button>
+</form>
+<form id="registerForm" class="form hidden">
+<label>الاسم الكامل</label>
+<input type="text" id="regName" placeholder="اكتب اسمك" required>
+<label>رقم الهاتف</label>
+<input type="tel" id="regPhone" dir="ltr" placeholder="7XXXXXXXX" required>
+<label>كلمة المرور</label>
+<input type="password" id="regPass" placeholder="••••••••" required>
+<button class="btn primary" type="submit">إنشاء الحساب</button>
+<p class="hint">بعد التسجيل ستُطلب منك إرسال ملفك إلى الفريق على تليجرام للموافقة.</p>
+</form>
+<div id="authMsg" class="msg"></div>
+</div>
+
+<div id="pendingView" class="hidden">
+<div class="waiting">
+<div class="spin"></div>
+<h2>حسابك قيد المراجعة</h2>
+<p>لم يُفعّل حسابك بعد. أرسل ملفك إلى فريق Akk على تليجرام وانتظر الموافقة.</p>
+</div>
+<div class="steps">
+<b>① نزّل ملف الحساب</b> بالضغط على الزر أدناه.<br>
+<b>② افتح تليجرام</b> وأرسل الملف إلى الفريق.<br>
+<b>③ انتظر</b> — ستُفعّل تلقائياً عند الموافقة.
+</div>
+<button class="btn ghost" id="downloadBtn" type="button">⬇ تحميل ملف الحساب</button>
+<a class="btn tg" id="tgBtn" target="_blank" rel="noopener">✈ إرسال الملف إلى الفريق على تليجرام</a>
+<div class="statusBox">
+<div>حالة الحساب: <b id="pStatus">بانتظار المراجعة</b></div>
+<div style="margin-top:6px">رقمك: <b id="pPhone">—</b></div>
+<div style="margin-top:6px">آخر فحص: <b id="pCheck">—</b></div>
+</div>
+<button class="btn ghost" id="pendingLogout" type="button">تسجيل خروج</button>
+</div>
+
+<div id="dashView" class="hidden">
+<div class="userbar">
+<div>
+<div class="uname" id="dName">—</div>
+<div class="uphone" id="dPhone">—</div>
+</div>
+<button class="btn ghost" id="logoutBtn" type="button" style="margin:0;padding:9px 16px;width:auto">خروج</button>
+</div>
+<div class="balanceCard">
+<div class="label">رصيد التعدين الحالي</div>
+<div class="balance"><span id="dBalance">0.0000</span> <span class="unit">Akk</span></div>
+<div class="live"><span class="dot"></span> التعدين يعمل — بدون نقر يومي</div>
+</div>
+<div class="grid">
+<div class="stat"><span>المعدل</span><b>1.5863 Akk / دقيقة</b></div>
+<div class="stat"><span>في الساعة</span><b id="dHourly">—</b></div>
+<div class="stat"><span>في اليوم</span><b id="dDaily">—</b></div>
+<div class="stat"><span>المدة</span><b class="ar" id="dElapsed">—</b></div>
+<div class="stat"><span>الانضمام</span><b class="ar" id="dJoined">—</b></div>
+<div class="stat"><span>رقم الحساب</span><b id="dAcc">—</b></div>
+</div>
+</div>
+
+</div>
+</div>
+
+<script>
+const GITHUB_USER = "abdhabdllmohmoad-eng";
+const GITHUB_REPO = "akk-platform";
+const GITHUB_BRANCH = "main";
+const APPROVED_URL = "https://raw.githubusercontent.com/" + GITHUB_USER + "/" + GITHUB_REPO + "/" + GITHUB_BRANCH + "/approved.json";
+const TELEGRAM_URL = "https://t.me/Akk_Currency";
+const RATE = 1.5863;
+const CHECK_EVERY = 15000;
+const USERS_KEY = "akk_users_v1";
+const SESSION_KEY = "akk_session_v1";
+
+const $ = id => document.getElementById(id);
+const hashPass = s => { let h=5381; for(let i=0;i<s.length;i++) h=((h<<5)+h)^s.charCodeAt(i); return (h>>>0).toString(16); };
+const normPhone = p => String(p).replace(/[\s\-\(\)\.]/g,"").trim();
+const esc = s => String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmtNum = n => n.toLocaleString("en-US",{minimumFractionDigits:4,maximumFractionDigits:4});
+const fmtDate = ts => { const d=new Date(ts),p=n=>String(n).padStart(2,"0"); return d.getFullYear()+"/"+p(d.getMonth()+1)+"/"+p(d.getDate())+" "+p(d.getHours())+":"+p(d.getMinutes())+":"+p(d.getSeconds()); };
+const fmtElapsed = ms => { let s=Math.floor(ms/1000),d=Math.floor(s/86400);s%=86400;let h=Math.floor(s/3600);s%=3600;let m=Math.floor(s/60);s%=60;return d+" يوم "+h+" س "+m+" د "+s+" ث"; };
+
+const loadUsers = () => { try{ return JSON.parse(localStorage.getItem(USERS_KEY))||{}; }catch(e){ return {}; } };
+const saveUsers = u => localStorage.setItem(USERS_KEY, JSON.stringify(u));
+let users = loadUsers();
+let session = localStorage.getItem(SESSION_KEY);
+let currentUser = null;
+let tickTimer = null, checkTimer = null;
+
+function authMsg(text, type){ const el=$("authMsg"); el.textContent=text; el.className="msg "+type; clearTimeout(el._t); el._t=setTimeout(()=>el.className="msg",4000); }
+
+document.querySelectorAll(".tab").forEach(tab => tab.addEventListener("click", ()=>{
+  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+  tab.classList.add("active");
+  const login = tab.dataset.tab === "login";
+  $("loginForm").classList.toggle("hidden", !login);
+  $("registerForm").classList.toggle("hidden", login);
+  $("authMsg").className = "msg";
+}));
+
+async function checkApproval(phone){
+  try{
+    const res = await fetch(APPROVED_URL + "?t=" + Date.now(), {cache:"no-store"});
+    if(!res.ok) return null;
+    const data = await res.json();
+    return (data.approved || []).find(u => u.phone === phone) || null;
+  }catch(e){ return null; }
+}
+
+$("registerForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const name = $("regName").value.trim();
+  const phone = normPhone($("regPhone").value);
+  const pass = $("regPass").value;
+  if (name.length < 2) return authMsg("الرجاء إدخال الاسم.","err");
+  if (phone.replace(/\D/g,"").length < 7) return authMsg("رقم الهاتف غير صحيح.","err");
+  if (pass.length < 4) return authMsg("كلمة المرور قصيرة.","err");
+  if (users[phone]) return authMsg("الرقم مسجّل مسبقاً، سجّل الدخول.","err");
+  users[phone] = { name, phone, pass: hashPass(pass), joined: Date.now() };
+  saveUsers(users);
+  session = phone;
+  localStorage.setItem(SESSION_KEY, session);
+  $("registerForm").reset();
+  openPending();
+});
+
+$("loginForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const phone = normPhone($("loginPhone").value);
+  const pass = $("loginPass").value;
+  const u = users[phone];
+  if (!u) return authMsg("لا يوجد حساب بهذا الرقم على هذا الجهاز.","err");
+  if (u.pass !== hashPass(pass)) return authMsg("كلمة المرور غير صحيحة.","err");
+  session = phone;
+  localStorage.setItem(SESSION_KEY, session);
+  $("loginForm").reset();
+  const approved = await checkApproval(phone);
+  if (approved){
+    users[phone].joined = approved.joined || users[phone].joined;
+    saveUsers(users);
+    openDashboard();
+  } else {
+    openPending();
+  }
+});
+
+function openPending(){
+  const u = users[session];
+  if (!u){ session=null; localStorage.removeItem(SESSION_KEY); return; }
+  $("authView").classList.add("hidden");
+  $("dashView").classList.add("hidden");
+  $("pendingView").classList.remove("hidden");
+  $("pPhone").textContent = u.phone;
+  $("tgBtn").href = TELEGRAM_URL;
+  checkApproval(u.phone).then(applyApproval);
+  clearInterval(checkTimer);
+  checkTimer = setInterval(async ()=>{ applyApproval(await checkApproval(u.phone)); }, CHECK_EVERY);
+}
+
+function applyApproval(approved){
+  $("pCheck").textContent = new Date().toLocaleTimeString("en-GB");
+  if (approved){
+    $("pStatus").textContent = "✅ تم قبول حسابك";
+    clearInterval(checkTimer);
+    if (approved.joined && users[session]){
+      users[session].joined = approved.joined;
+      saveUsers(users);
+    }
+    setTimeout(openDashboard, 900);
+  } else {
+    $("pStatus").textContent = "⏳ بانتظار مراجعة الفريق";
+  }
+}
+
+function openDashboard(){
+  const u = users[session];
+  if (!u) return;
+  clearInterval(checkTimer);
+  $("pendingView").classList.add("hidden");
+  $("authView").classList.add("hidden");
+  $("dashView").classList.remove("hidden");
+  currentUser = u;
+  $("dName").textContent = u.name;
+  $("dPhone").textContent = u.phone;
+  $("dAcc").textContent = "AKK-" + u.phone;
+  $("dJoined").textContent = fmtDate(u.joined);
+  $("dHourly").textContent = fmtNum(RATE*60) + " Akk";
+  $("dDaily").textContent = fmtNum(RATE*1440) + " Akk";
+  tick();
+  clearInterval(tickTimer);
+  tickTimer = setInterval(tick, 100);
+}
+
+function tick(){
+  if (!currentUser) return;
+  const ms = Date.now() - currentUser.joined;
+  $("dBalance").textContent = fmtNum((ms/60000) * RATE);
+  $("dElapsed").textContent = fmtElapsed(ms);
+}
+
+function logout(){
+  session = null; currentUser = null;
+  localStorage.removeItem(SESSION_KEY);
+  clearInterval(tickTimer); clearInterval(checkTimer);
+  $("pendingView").classList.add("hidden");
+  $("dashView").classList.add("hidden");
+  $("authView").classList.remove("hidden");
+  $("authMsg").className = "msg";
+}
+$("logoutBtn").addEventListener("click", logout);
+$("pendingLogout").addEventListener("click", logout);
+
+function downloadFile(){
+  const u = users[session]; if (!u) return;
+  const html = '<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>حساب Akk - '+esc(u.phone)+'</title><style>body{font-family:system-ui;background:#0a0e14;color:#e7ecf3;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:20px}.card{background:#111823;border:1px solid #1f2b3a;border-radius:18px;padding:24px;max-width:470px;width:100%}h1{margin:0 0 4px;font-size:20px}.sub{color:#7d8ea3;font-size:12px;margin-bottom:14px}.bal{font-size:32px;font-weight:900;color:#16c784;text-align:center;margin:16px 0;direction:ltr;word-break:break-all}.r{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px dashed #1f2b3a;font-size:14px}.r span{color:#8aa0b8}.ltr{direction:ltr}.foot{margin-top:14px;color:#5d6f85;font-size:11.5px;text-align:center;line-height:1.8}</style></head><body><div class="card"><h1>Akk — ملف الحساب</h1><div class="sub">أرسل هذا الملف إلى الفريق على تليجرام للموافقة</div><div class="bal" id="b">0</div><div class="r"><span>الاسم</span><b>'+esc(u.name)+'</b></div><div class="r"><span>الهاتف</span><b class="ltr">'+esc(u.phone)+'</b></div><div class="r"><span>رقم الحساب</span><b class="ltr">AKK-'+esc(u.phone)+'</b></div><div class="r"><span>تاريخ الانضمام</span><b>'+fmtDate(u.joined)+'</b></div><div class="r"><span>لحظة الانضمام (ms)</span><b class="ltr">'+u.joined+'</b></div><div class="r"><span>المعدل</span><b class="ltr">'+RATE+' Akk/min</b></div><div class="r"><span>المدة</span><b id="e">—</b></div><div class="foot">العملة: Akk — التعدين تلقائي بدون نقر يومي</div></div><script>var J='+u.joined+',R='+RATE+';function t(){var ms=Date.now()-J;document.getElementById("b").textContent=(ms/60000*R).toLocaleString("en-US",{minimumFractionDigits:4,maximumFractionDigits:4})+" Akk";var s=Math.floor(ms/1000),d=Math.floor(s/86400);s%=86400;var h=Math.floor(s/3600);s%=3600;var m=Math.floor(s/60);s%=60;document.getElementById("e").textContent=d+" يوم "+h+" س "+m+" د "+s+" ث";}t();setInterval(t,1000);<\/script></body></html>';
+  const blob = new Blob([html], {type:"text/html;charset=utf-8"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "akk-account-" + u.phone + ".html";
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 1500);
+}
+$("downloadBtn").addEventListener("click", downloadFile);
+
+(async function init(){
+  if (session && users[session]){
+    const approved = await checkApproval(session);
+    if (approved){
+      users[session].joined = approved.joined || users[session].joined;
+      saveUsers(users);
+      openDashboard();
+    } else {
+      openPending();
+    }
+  }
+})();
+</script>
+</body>
+</html>

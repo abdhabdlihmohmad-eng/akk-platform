@@ -86,7 +86,7 @@ input:focus{border-color:var(--gold)}
 <label>كلمة المرور</label>
 <input type="password" id="regPass" placeholder="••••••••" required>
 <button class="btn primary" type="submit">إنشاء الحساب</button>
-<p class="hint">بعد التسجيل ستُنسخ رسالتك تلقائياً وتفتح تليجرام لإرسالها للفريق.</p>
+<p class="hint">بعد التسجيل ستُفتح تليجرام تلقائياً برسالتك جاهزة للإرسال.</p>
 </form>
 <div id="authMsg" class="msg"></div>
 </div>
@@ -99,16 +99,17 @@ input:focus{border-color:var(--gold)}
 </div>
 <div class="steps">
 <b>① اضغط الزر الأصفر</b><br>
-تُنسخ رسالتك تلقائياً وتفتح تليجرام.<br>
+تُفتح تليجرام برسالتك جاهزة — أو تُنسخ للحافظة.<br>
 <b>② في تليجرام</b><br>
-ضغطة طويلة → لصق → إرسال.<br>
+إن كانت الرسالة مملوءة → أرسل مباشرة.<br>
+وإلا → ضغطة طويلة → لصق → إرسال.<br>
 <b>③ انتظر</b> — يُفعّل حسابك تلقائياً عند الموافقة.
 </div>
 <button class="btn primary" id="sendBtn" type="button">📩 إرسال بياناتي إلى الفريق</button>
 <button class="btn copy" id="copyBtn" type="button">📋 نسخ الرسالة فقط</button>
 <a class="btn ghost" id="tgBtn" target="_blank" rel="noopener" style="margin-top:10px;text-align:center">✈ فتح تليجرام</a>
 <div class="steps" style="margin-top:14px">
-<b>الرسالة التي ستُنسخ:</b>
+<b>الرسالة:</b>
 <div class="msgPreview" id="msgPreview">—</div>
 </div>
 <div class="statusBox">
@@ -146,17 +147,19 @@ input:focus{border-color:var(--gold)}
 </div>
 
 <script>
+/* ============ الإعدادات ============ */
 const GITHUB_USER  = "abdhabdllmohmoad-eng";
 const GITHUB_REPO  = "akk-platform";
 const GITHUB_BRANCH= "main";
 const USERS_URL    = "https://raw.githubusercontent.com/" + GITHUB_USER + "/" + GITHUB_REPO + "/" + GITHUB_BRANCH + "/users.json";
-const TELEGRAM_USER= "Akk_Currency";
+const TELEGRAM_USER= "Akk_Currency";          /* بدون @ */
 const TELEGRAM_URL = "https://t.me/" + TELEGRAM_USER;
 const RATE         = 1.5863;
 const CHECK_EVERY  = 15000;
 const USERS_KEY    = "akk_users_v1";
 const SESSION_KEY  = "akk_session_v1";
 
+/* ============ أدوات ============ */
 const $ = id => document.getElementById(id);
 const hashPass = s => { let h=5381; for(let i=0;i<s.length;i++) h=((h<<5)+h)^s.charCodeAt(i); return (h>>>0).toString(16); };
 const normPhone = p => String(p).replace(/[\s\-\(\)\.]/g,"").trim();
@@ -164,6 +167,7 @@ const fmtNum = n => n.toLocaleString("en-US",{minimumFractionDigits:4,maximumFra
 const fmtDate = ts => { const d=new Date(ts),p=n=>String(n).padStart(2,"0"); return d.getFullYear()+"/"+p(d.getMonth()+1)+"/"+p(d.getDate())+" "+p(d.getHours())+":"+p(d.getMinutes())+":"+p(d.getSeconds()); };
 const fmtElapsed = ms => { let s=Math.floor(ms/1000),d=Math.floor(s/86400);s%=86400;let h=Math.floor(s/3600);s%=3600;let m=Math.floor(s/60);s%=60;return d+" يوم "+h+" س "+m+" د "+s+" ث"; };
 
+/* ============ التخزين المحلي ============ */
 const loadLocal = () => { try{ return JSON.parse(localStorage.getItem(USERS_KEY))||{}; }catch(e){ return {}; } };
 const saveLocal = u => localStorage.setItem(USERS_KEY, JSON.stringify(u));
 let localUsers = loadLocal();
@@ -173,6 +177,7 @@ let tickTimer = null, checkTimer = null;
 
 function authMsg(text, type){ const el=$("authMsg"); el.textContent=text; el.className="msg "+type; clearTimeout(el._t); el._t=setTimeout(()=>el.className="msg",4000); }
 
+/* ============ التبويبات ============ */
 document.querySelectorAll(".tab").forEach(tab => tab.addEventListener("click", ()=>{
   document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
   tab.classList.add("active");
@@ -182,7 +187,7 @@ document.querySelectorAll(".tab").forEach(tab => tab.addEventListener("click", (
   $("authMsg").className = "msg";
 }));
 
-/* التحقق من الموافقة: يبحث عن الرقم في users.json */
+/* ============ التحقق من الموافقة ============ */
 async function checkApproval(phone){
   try{
     const res = await fetch(USERS_URL + "?t=" + Date.now(), {cache:"no-store"});
@@ -192,7 +197,7 @@ async function checkApproval(phone){
   }catch(e){ return null; }
 }
 
-/* ========== التسجيل ========== */
+/* ============ التسجيل ============ */
 $("registerForm").addEventListener("submit", e => {
   e.preventDefault();
   const name = $("regName").value.trim();
@@ -202,6 +207,7 @@ $("registerForm").addEventListener("submit", e => {
   if (phone.replace(/\D/g,"").length < 7) return authMsg("رقم الهاتف غير صحيح.","err");
   if (pass.length < 4) return authMsg("كلمة المرور قصيرة.","err");
   if (localUsers[phone]) return authMsg("الرقم مسجّل مسبقاً، سجّل الدخول.","err");
+
   localUsers[phone] = { name, phone, pass: hashPass(pass), joined: Date.now() };
   saveLocal(localUsers);
   session = phone;
@@ -211,7 +217,7 @@ $("registerForm").addEventListener("submit", e => {
   setTimeout(sendToTelegram, 500);
 });
 
-/* ========== الدخول ========== */
+/* ============ الدخول ============ */
 $("loginForm").addEventListener("submit", async e => {
   e.preventDefault();
   const phone = normPhone($("loginPhone").value);
@@ -222,6 +228,7 @@ $("loginForm").addEventListener("submit", async e => {
   session = phone;
   localStorage.setItem(SESSION_KEY, session);
   $("loginForm").reset();
+
   const approved = await checkApproval(phone);
   if (approved){
     localUsers[phone].joined = approved.joined || localUsers[phone].joined;
@@ -232,7 +239,7 @@ $("loginForm").addEventListener("submit", async e => {
   }
 });
 
-/* ========== نص الرسالة ========== */
+/* ============ نص الرسالة ============ */
 function buildMessage(u){
   return "🔔 طلب تفعيل حساب Akk\n"
        + "───────────────\n"
@@ -243,7 +250,7 @@ function buildMessage(u){
        + "💠 العملة: Akk";
 }
 
-/* ========== شاشة الانتظار ========== */
+/* ============ شاشة الانتظار ============ */
 function openPending(){
   const u = localUsers[session];
   if (!u){ session=null; localStorage.removeItem(SESSION_KEY); return; }
@@ -274,7 +281,7 @@ function applyApproval(approved){
   }
 }
 
-/* ========== نسخ للحافظة ========== */
+/* ============ نسخ للحافظة ============ */
 async function copyText(text){
   try{
     if (navigator.clipboard && window.isSecureContext){
@@ -295,12 +302,24 @@ async function copyText(text){
   }catch(e){ return false; }
 }
 
+/* ============ إرسال إلى تليجرام (ملء + نسخ احتياطي) ============ */
 async function sendToTelegram(){
   const u = localUsers[session]; if (!u) return;
-  const copied = await copyText(buildMessage(u));
-  $("pStatus").textContent = copied ? "✅ نُسخت الرسالة — افتح تليجرام والصقها" : "⚠️ انسخ الرسالة يدوياً";
-  setTimeout(()=>{ window.location.href = TELEGRAM_URL; }, 900);
+  const text = buildMessage(u);
+
+  /* 1) نسخ احتياطي للحافظة */
+  const copied = await copyText(text);
+
+  /* 2) فتح تليجرام برسالة مملوءة مسبقاً */
+  const tgDeep = "https://t.me/" + TELEGRAM_USER + "?text=" + encodeURIComponent(text);
+
+  $("pStatus").textContent = copied
+    ? "✅ نُسخت الرسالة — إن لم تظهر في تليجرام الصقها يدوياً"
+    : "⚠️ إن لم تظهر الرسالة في تليجرام انسخها يدوياً";
+
+  setTimeout(()=>{ window.location.href = tgDeep; }, 900);
 }
+
 $("sendBtn").addEventListener("click", sendToTelegram);
 $("copyBtn").addEventListener("click", async ()=>{
   const u = localUsers[session]; if (!u) return;
@@ -308,7 +327,7 @@ $("copyBtn").addEventListener("click", async ()=>{
   $("pStatus").textContent = ok ? "✅ تم نسخ الرسالة" : "❌ تعذّر النسخ — حدد يدوياً";
 });
 
-/* ========== لوحة التعدين ========== */
+/* ============ لوحة التعدين ============ */
 function openDashboard(){
   const u = localUsers[session];
   if (!u) return;
@@ -327,6 +346,7 @@ function openDashboard(){
   clearInterval(tickTimer);
   tickTimer = setInterval(tick, 100);
 }
+
 function tick(){
   if (!currentUser) return;
   const ms = Date.now() - currentUser.joined;
@@ -346,6 +366,7 @@ function logout(){
 $("logoutBtn").addEventListener("click", logout);
 $("pendingLogout").addEventListener("click", logout);
 
+/* ============ بدء التشغيل ============ */
 (async function init(){
   if (session && localUsers[session]){
     const approved = await checkApproval(session);

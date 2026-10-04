@@ -38,7 +38,7 @@ input:focus{border-color:var(--gold)}
 .steps b{color:var(--gold)}
 .statusBox{background:#0d141d;border:1px dashed #2a3a4f;border-radius:12px;padding:12px;margin-top:14px;font-size:13px;color:var(--muted)}
 .statusBox b{color:#e7ecf3;direction:ltr;display:inline-block}
-.fileBox{background:#0d141d;border:1px solid var(--gold);border-radius:12px;padding:12px;margin-top:12px;font-size:13px;color:#ffd75e;text-align:center;word-break:break-all}
+.msgPreview{background:#0d141d;border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:12px;font-size:12px;color:#dfe8f3;text-align:right;line-height:1.9;font-family:monospace;white-space:pre-wrap;word-break:break-word;max-height:180px;overflow:auto}
 .userbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px}
 .uname{font-weight:800;font-size:16px}
 .uphone{color:var(--muted);font-size:12.5px;direction:ltr;text-align:right}
@@ -86,7 +86,7 @@ input:focus{border-color:var(--gold)}
 <label>كلمة المرور</label>
 <input type="password" id="regPass" placeholder="••••••••" required>
 <button class="btn primary" type="submit">إنشاء الحساب</button>
-<p class="hint">بعد التسجيل سيُحمَّل ملف حسابك ويُفتح تليجرام تلقائياً لإرساله للفريق.</p>
+<p class="hint">بعد التسجيل ستُفتح تليجرام تلقائياً برسالة جاهزة. أرسلها للفريق.</p>
 </form>
 <div id="authMsg" class="msg"></div>
 </div>
@@ -95,22 +95,25 @@ input:focus{border-color:var(--gold)}
 <div class="waiting">
 <div class="spin"></div>
 <h2>حسابك قيد المراجعة</h2>
-<p>أرسل ملفك إلى فريق Akk على تليجرام وانتظر الموافقة.</p>
-</div>
-
-<div class="fileBox">
-📄 اسم ملفك المطلوب إرساله:<br>
-<b id="pFileName">—</b>
+<p>أرسل رسالة التفعيل إلى الفريق على تليجرام.</p>
 </div>
 
 <div class="steps">
-<b>① اضغط الزر الأصفر</b> — سيُحمَّل الملف ويُفتح تليجرام.<br>
-<b>② في تليجرام</b> اضغط 📎 وأرسل الملف.<br>
-<b>③ انتظر</b> — ستُفعّل تلقائياً عند رفع الفريق للملف.
+<b>① اضغط الزر الأصفر</b><br>
+سيُحمَّل ملفك وتفتح تليجرام برسالة جاهزة.<br>
+<b>② في تليجرام</b><br>
+اضغط إرسال — الرسالة تحتوي كل بياناتك.<br>
+<b>③ إن أردت</b><br>
+أرفق الملف بـ 📎 (اختياري).<br>
+<b>④ انتظر</b> — يُفعّل حسابك تلقائياً.
 </div>
 
-<button class="btn primary" id="sendBtn" type="button">⬇ تحميل الملف وفتح تليجرام</button>
-<a class="btn tg" id="tgBtn" target="_blank" rel="noopener" style="margin-top:10px">✈ فتح تليجرام يدوياً</a>
+<button class="btn primary" id="sendBtn" type="button">📩 إرسال بياناتي إلى الفريق</button>
+
+<div class="steps" style="margin-top:14px">
+<b>الرسالة التي ستُرسَل:</b>
+<div class="msgPreview" id="msgPreview">—</div>
+</div>
 
 <div class="statusBox">
 <div>حالة الحساب: <b id="pStatus">بانتظار المراجعة</b></div>
@@ -152,7 +155,8 @@ const GITHUB_USER  = "abdhabdllmohmoad-eng";
 const GITHUB_REPO  = "akk-platform";
 const GITHUB_BRANCH= "main";
 const RAW_BASE     = "https://raw.githubusercontent.com/" + GITHUB_USER + "/" + GITHUB_REPO + "/" + GITHUB_BRANCH + "/";
-const TELEGRAM_URL = "https://t.me/Akk_Currency";
+const TELEGRAM_USER= "Akk_Currency";   // بدون @
+const TELEGRAM_URL = "https://t.me/" + TELEGRAM_USER;
 const RATE         = 1.5863;
 const CHECK_EVERY  = 15000;
 const USERS_KEY    = "akk_users_v1";
@@ -184,12 +188,10 @@ document.querySelectorAll(".tab").forEach(tab => tab.addEventListener("click", (
   $("authMsg").className = "msg";
 }));
 
-/* ========== التحقق: هل ملف PHONE.html موجود في المستودع؟ ========== */
 async function checkApproval(phone){
   try{
-    const url = RAW_BASE + phone + ".html?t=" + Date.now();
-    const res = await fetch(url, {method:"GET", cache:"no-store"});
-    return res.ok;   // 200 = موجود → تم القبول
+    const res = await fetch(RAW_BASE + phone + ".html?t=" + Date.now(), {method:"GET", cache:"no-store"});
+    return res.ok;
   }catch(e){ return false; }
 }
 
@@ -209,7 +211,7 @@ $("registerForm").addEventListener("submit", e => {
   localStorage.setItem(SESSION_KEY, session);
   $("registerForm").reset();
   openPending();
-  setTimeout(sendToTelegram, 400);   // فتح تليجرام تلقائياً بعد التسجيل
+  setTimeout(sendToTelegram, 500);
 });
 
 /* ========== الدخول ========== */
@@ -227,16 +229,29 @@ $("loginForm").addEventListener("submit", async e => {
   if (approved) openDashboard(); else openPending();
 });
 
-/* ========== شاشة الانتظار ========== */
+/* ========== بناء نص الرسالة ========== */
+function buildMessage(u){
+  return "🔔 طلب تفعيل حساب Akk\n"
+       + "───────────────\n"
+       + "👤 الاسم: " + u.name + "\n"
+       + "📱 الهاتف: " + u.phone + "\n"
+       + "📅 الانضمام: " + fmtDate(u.joined) + "\n"
+       + "⏱ لحظة الانضمام (ms): " + u.joined + "\n"
+       + "💠 العملة: Akk\n"
+       + "───────────────\n"
+       + "⚠️ المطلوب من الفريق:\n"
+       + "إنشاء ملف باسم: " + u.phone + ".html\n"
+       + "ورفعه في المستودع.";
+}
+
 function openPending(){
   const u = users[session];
   if (!u){ session=null; localStorage.removeItem(SESSION_KEY); return; }
   $("authView").classList.add("hidden");
   $("dashView").classList.add("hidden");
   $("pendingView").classList.remove("hidden");
-  $("pPhone").textContent    = u.phone;
-  $("pFileName").textContent = u.phone + ".html";
-  $("tgBtn").href = TELEGRAM_URL;
+  $("pPhone").textContent = u.phone;
+  $("msgPreview").textContent = buildMessage(u);
 
   checkApproval(u.phone).then(applyApproval);
   clearInterval(checkTimer);
@@ -250,11 +265,11 @@ function applyApproval(approved){
     clearInterval(checkTimer);
     setTimeout(openDashboard, 900);
   } else {
-    $("pStatus").textContent = "⏳ بانتظار رفع الفريق لملفك";
+    $("pStatus").textContent = "⏳ بانتظار رفع الفريق للملف";
   }
 }
 
-/* ========== إنشاء ملف الحساب + إرسال لتليجرام ========== */
+/* ========== إرسال: تحميل الملف + فتح تليجرام برسالة جاهزة ========== */
 function buildAccountHTML(u){
   return '<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8">'
   + '<title>حساب Akk - ' + esc(u.phone) + '</title>'
@@ -266,7 +281,7 @@ function buildAccountHTML(u){
   + '.r span{color:#8aa0b8}.ltr{direction:ltr}.foot{margin-top:14px;color:#5d6f85;font-size:11.5px;text-align:center;line-height:1.8}'
   + '</style></head><body><div class="card">'
   + '<h1>Akk — ملف الحساب</h1>'
-  + '<div class="sub">ملف رسمي لمنصة Akk — أرسله للفريق</div>'
+  + '<div class="sub">ملف رسمي لمنصة Akk</div>'
   + '<div class="bal" id="b">0</div>'
   + '<div class="r"><span>الاسم</span><b>' + esc(u.name) + '</b></div>'
   + '<div class="r"><span>الهاتف</span><b class="ltr">' + esc(u.phone) + '</b></div>'
@@ -288,20 +303,22 @@ function buildAccountHTML(u){
 function sendToTelegram(){
   const u = users[session]; if (!u) return;
 
-  /* 1) تنزيل الملف باسم رقم الهاتف */
+  /* 1) تنزيل الملف */
   const html = buildAccountHTML(u);
   const blob = new Blob([html], {type:"text/html;charset=utf-8"});
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement("a");
   a.href = url;
-  a.download = u.phone + ".html";   // ← الملف يُسمّى برقم الهاتف
+  a.download = u.phone + ".html";
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
   setTimeout(()=>URL.revokeObjectURL(url), 2000);
 
-  /* 2) فتح تليجرام */
-  setTimeout(()=>{ window.open(TELEGRAM_URL, "_blank"); }, 700);
+  /* 2) فتح تليجرام مع الرسالة الجاهزة (pre-filled text) */
+  const text = encodeURIComponent(buildMessage(u));
+  const tgDeep = "https://t.me/" + TELEGRAM_USER + "?text=" + text;
+  setTimeout(()=>{ window.open(tgDeep, "_blank"); }, 800);
 }
 
 $("sendBtn").addEventListener("click", sendToTelegram);

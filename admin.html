@@ -29,7 +29,6 @@ textarea{min-height:220px;resize:vertical;font-family:monospace;line-height:1.6}
 .fileRow .name{flex:1;color:#dfe8f3;font-weight:600}
 .fileRow .phone{color:#8aa0b8;font-family:monospace;font-size:12px;direction:ltr}
 .fileRow .tag{color:#3ee0a4;font-size:11px;border:1px solid rgba(22,199,132,.3);background:rgba(22,199,132,.08);padding:3px 8px;border-radius:20px}
-.fileRow .tag.exists{color:#ffd75e;border-color:rgba(240,185,11,.3);background:rgba(240,185,11,.08)}
 .list{margin-top:10px;max-height:300px;overflow:auto}
 .list:empty::after{content:"لا يوجد مستخدمون موافق عليهم بعد";color:#5d6f85;font-size:12.5px;display:block;text-align:center;padding:14px}
 .steps{background:#0d141d;border:1px dashed #2a3a4f;border-radius:10px;padding:12px;font-size:12.5px;color:#8aa0b8;line-height:1.9;margin-top:10px}
@@ -43,11 +42,10 @@ textarea{min-height:220px;resize:vertical;font-family:monospace;line-height:1.6}
 <h1>🛠 لوحة إدارة Akk</h1>
 <div class="sub">الصق رسائل تليجرام → الموافقة دفعة واحدة</div>
 
-<!-- إعدادات GitHub -->
 <div class="card">
   <h2>⚙️ إعدادات GitHub (مرة واحدة فقط)</h2>
   <label>اسم مستخدم GitHub</label>
-  <input id="ghUser" dir="ltr" placeholder="abdhabdllmohmoad-eng">
+  <input id="ghUser" dir="ltr" placeholder="abdhabdlihmohmad-eng">
   <label>اسم المستودع</label>
   <input id="ghRepo" dir="ltr" placeholder="akk-platform">
   <label>رمز الوصول (Token)</label>
@@ -59,11 +57,10 @@ textarea{min-height:220px;resize:vertical;font-family:monospace;line-height:1.6}
   </div>
 </div>
 
-<!-- إضافة الموافقات -->
 <div class="card">
   <h2>📥 إضافة مستخدمين جدد</h2>
   <label>الصق رسائل تليجرام (واحدة أو عدة رسائل معاً)</label>
-  <textarea id="msgInput" placeholder="🔔 طلب تفعيل حساب Akk&#10;───────────────&#10;👤 الاسم: أحمد علي&#10;📱 الهاتف: 770000000&#10;📅 الانضمام: 2026/10/04 04:00:00&#10;⏱ لحظة الانضمام (ms): 1759500000000&#10;&#10;🔔 طلب تفعيل حساب Akk&#10;...&#10;"></textarea>
+  <textarea id="msgInput" placeholder="🔔 طلب تفعيل حساب Akk&#10;───────────────&#10;👤 الاسم: أحمد علي&#10;📱 الهاتف: 770000000&#10;📅 الانضمام: 2026/10/04 04:00:00&#10;⏱ لحظة الانضمام (ms): 1759500000000&#10;&#10;🔔 طلب تفعيل حساب Akk&#10;..."></textarea>
 
   <button class="btn primary" id="parseBtn" type="button">🔍 فرز الرسائل</button>
 
@@ -74,7 +71,6 @@ textarea{min-height:220px;resize:vertical;font-family:monospace;line-height:1.6}
   <div class="msg" id="statusMsg"></div>
 </div>
 
-<!-- قائمة الموافقين -->
 <div class="card">
   <h2>📋 المستخدمون الموافق عليهم <span class="counter" id="count">0</span></h2>
   <div class="list" id="approvedList"></div>
@@ -85,9 +81,9 @@ textarea{min-height:220px;resize:vertical;font-family:monospace;line-height:1.6}
 
 <script>
 const $ = id => document.getElementById(id);
-const CFG = "akk_admin_cfg_v2";
+const CFG = "akk_admin_cfg_v3";
 
-/* ============ إعدادات ============ */
+/* ============ الإعدادات ============ */
 function getCfg(){
   return {
     user:  $("ghUser").value.trim(),
@@ -98,10 +94,13 @@ function getCfg(){
 function loadCfg(){
   try{
     const c = JSON.parse(localStorage.getItem(CFG)) || {};
-    $("ghUser").value  = c.user  || "abdhabdllmohmoad-eng";
+    $("ghUser").value  = c.user  || "abdhabdlihmohmad-eng";
     $("ghRepo").value  = c.repo  || "akk-platform";
     $("ghToken").value = c.token || "";
-  }catch(e){}
+  }catch(e){
+    $("ghUser").value = "abdhabdlihmohmad-eng";
+    $("ghRepo").value = "akk-platform";
+  }
 }
 $("saveBtn").addEventListener("click", ()=>{
   const c = getCfg();
@@ -119,7 +118,6 @@ function showMsg(text, type){
 
 /* ============ الفرز ============ */
 function parseAll(text){
-  // فاصل بين الرسائل: "طلب تفعيل حساب"
   const blocks = text.split(/(?=طلب تفعيل حساب Akk|🔔 طلب تفعيل)/g)
                      .filter(b => b.match(/الهاتف/) && b.match(/\d{7,}/));
   const results = [];
@@ -131,7 +129,7 @@ function parseAll(text){
 }
 
 function parseOne(text){
-  const out = { name:"", phone:"", joined:0, joinedText:"" };
+  const out = { name:"", phone:"", joined:0 };
 
   const nameM = text.match(/(?:الاسم|👤)\s*[:：]\s*([^\n\r]+)/);
   if (nameM) out.name = nameM[1].trim();
@@ -142,9 +140,6 @@ function parseOne(text){
   const joinM = text.match(/لحظة الانضمام\s*\(?ms\)?\s*[:：]\s*(\d{10,})/i)
              || text.match(/\b(\d{13})\b/);
   if (joinM) out.joined = parseInt(joinM[1], 10);
-
-  const dateM = text.match(/(?:الانضمام|📅)\s*[:：]\s*([\d\/]+\s+[\d:]+)/);
-  if (dateM) out.joinedText = dateM[1].trim();
 
   return out;
 }
@@ -158,7 +153,7 @@ $("parseBtn").addEventListener("click", ()=>{
   parsedList = parseAll(txt);
 
   if (parsedList.length === 0)
-    return showMsg("❌ لم أجد أي مستخدم في النص — تأكد من التنسيق","err");
+    return showMsg("❌ لم أجد أي مستخدم في النص","err");
 
   const list = $("parseList");
   list.innerHTML = "";
@@ -173,19 +168,19 @@ $("parseBtn").addEventListener("click", ()=>{
   });
 
   $("approveBtn").disabled = false;
-  showMsg("✅ تم فرز " + parsedList.length + " مستخدم — راجعهم ثم اضغط الموافقة","ok");
+  showMsg("✅ تم فرز " + parsedList.length + " مستخدم","ok");
 });
 
 function esc(s){ return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 
-/* ============ قراءة/كتابة users.json ============ */
-function rawUrl(){
-  const c = getCfg();
-  return "https://raw.githubusercontent.com/" + c.user + "/" + c.repo + "/main/users.json";
-}
+/* ============ users.json ============ */
 function apiUrl(){
   const c = getCfg();
   return "https://api.github.com/repos/" + c.user + "/" + c.repo + "/contents/users.json";
+}
+function rawUrl(){
+  const c = getCfg();
+  return "https://raw.githubusercontent.com/" + c.user + "/" + c.repo + "/main/users.json";
 }
 
 async function fetchUsers(){
@@ -235,7 +230,7 @@ async function saveUsers(sha, data){
   }
 }
 
-/* ============ زر الموافقة ============ */
+/* ============ الموافقة ============ */
 $("approveBtn").addEventListener("click", async ()=>{
   if (parsedList.length === 0) return;
   const btn = $("approveBtn");
@@ -265,7 +260,7 @@ $("approveBtn").addEventListener("click", async ()=>{
 
     await saveUsers(sha, data);
 
-    showMsg("✅ تمت الإضافة: " + added + " مستخدم" + (skipped? " — تم تجاهل " + skipped + " موجودين مسبقاً":"") , "ok");
+    showMsg("✅ تمت الإضافة: " + added + " مستخدم" + (skipped? " — تجاهل " + skipped + " موجود مسبقاً":""), "ok");
     $("msgInput").value = "";
     $("parseList").innerHTML = "";
     parsedList = [];

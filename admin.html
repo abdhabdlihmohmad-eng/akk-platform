@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>لوحة إدارة Akk</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Segoe UI",Tahoma,sans-serif;background:#0a0e14;color:#e7ecf3;min-height:100vh;padding:16px}
+.wrap{max-width:620px;margin:0 auto}
+h1{text-align:center;color:#f0b90b;font-size:22px;margin-bottom:6px}
+.sub{text-align:center;color:#8aa0b8;font-size:13px;margin-bottom:18px}
+.card{background:#111823;border:1px solid #1f2b3a;border-radius:16px;padding:18px;margin-bottom:14px}
+.card h2{font-size:15px;color:#ffd75e;margin-bottom:12px}
+label{display:block;font-size:12.5px;color:#8aa0b8;margin:8px 0 4px}
+input,textarea{width:100%;padding:12px;border-radius:10px;border:1px solid #1f2b3a;background:#0b1119;color:#e7ecf3;font:inherit;font-size:14px;outline:none}
+input:focus,textarea:focus{border-color:#f0b90b}
+textarea{min-height:220px;resize:vertical;font-family:monospace;line-height:1.6}
+.btn{padding:13px;border:0;border-radius:11px;font:inherit;font-weight:800;cursor:pointer;display:block;width:100%;margin-top:10px}
+.btn.primary{background:linear-gradient(135deg,#ffd75e,#f0b90b);color:#141a00}
+.btn.green{background:linear-gradient(135deg,#16c784,#0e9e68);color:#fff}
+.btn.gray{background:#1b2635;color:#cfd9e6;border:1px solid #1f2b3a}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.msg{padding:10px;border-radius:10px;font-size:13px;text-align:center;margin-top:10px;display:none}
+.msg.ok{display:block;background:rgba(22,199,132,.1);color:#3ee0a4;border:1px solid rgba(22,199,132,.3)}
+.msg.err{display:block;background:rgba(255,80,80,.1);color:#ff8a8a;border:1px solid rgba(255,80,80,.3)}
+.msg.info{display:block;background:rgba(240,185,11,.1);color:#ffd75e;border:1px solid rgba(240,185,11,.3)}
+.fileRow{display:flex;align-items:center;gap:10px;padding:10px 12px;background:#0d141d;border:1px solid #1f2b3a;border-radius:10px;margin-bottom:8px;font-size:13.5px}
+.fileRow .name{flex:1;color:#dfe8f3;font-weight:600}
+.fileRow .phone{color:#8aa0b8;font-family:monospace;font-size:12px;direction:ltr}
+.fileRow .tag{color:#3ee0a4;font-size:11px;border:1px solid rgba(22,199,132,.3);background:rgba(22,199,132,.08);padding:3px 8px;border-radius:20px}
+.fileRow .tag.exists{color:#ffd75e;border-color:rgba(240,185,11,.3);background:rgba(240,185,11,.08)}
+.list{margin-top:10px;max-height:300px;overflow:auto}
+.list:empty::after{content:"لا يوجد مستخدمون موافق عليهم بعد";color:#5d6f85;font-size:12.5px;display:block;text-align:center;padding:14px}
+.steps{background:#0d141d;border:1px dashed #2a3a4f;border-radius:10px;padding:12px;font-size:12.5px;color:#8aa0b8;line-height:1.9;margin-top:10px}
+.steps b{color:#ffd75e}
+.counter{display:inline-block;background:#1b2635;color:#ffd75e;font-size:11.5px;padding:3px 10px;border-radius:20px;margin-right:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>🛠 لوحة إدارة Akk</h1>
+<div class="sub">الصق رسائل تليجرام → الموافقة دفعة واحدة</div>
+
+<!-- إعدادات GitHub -->
+<div class="card">
+  <h2>⚙️ إعدادات GitHub (مرة واحدة فقط)</h2>
+  <label>اسم مستخدم GitHub</label>
+  <input id="ghUser" dir="ltr" placeholder="abdhabdllmohmoad-eng">
+  <label>اسم المستودع</label>
+  <input id="ghRepo" dir="ltr" placeholder="akk-platform">
+  <label>رمز الوصول (Token)</label>
+  <input id="ghToken" type="password" dir="ltr" placeholder="ghp_xxxxxxxx">
+  <button class="btn gray" id="saveBtn" type="button">💾 حفظ الإعدادات</button>
+  <div class="steps">
+    <b>احصل على الرمز من:</b> github.com/settings/tokens<br>
+    Generate new token (classic) → اختر صلاحية <b>repo</b> → انسخ الرمز.
+  </div>
+</div>
+
+<!-- إضافة الموافقات -->
+<div class="card">
+  <h2>📥 إضافة مستخدمين جدد</h2>
+  <label>الصق رسائل تليجرام (واحدة أو عدة رسائل معاً)</label>
+  <textarea id="msgInput" placeholder="🔔 طلب تفعيل حساب Akk&#10;───────────────&#10;👤 الاسم: أحمد علي&#10;📱 الهاتف: 770000000&#10;📅 الانضمام: 2026/10/04 04:00:00&#10;⏱ لحظة الانضمام (ms): 1759500000000&#10;&#10;🔔 طلب تفعيل حساب Akk&#10;...&#10;"></textarea>
+
+  <button class="btn primary" id="parseBtn" type="button">🔍 فرز الرسائل</button>
+
+  <div class="list" id="parseList"></div>
+
+  <button class="btn green" id="approveBtn" type="button" disabled>✅ موافقة وإضافة إلى users.json</button>
+
+  <div class="msg" id="statusMsg"></div>
+</div>
+
+<!-- قائمة الموافقين -->
+<div class="card">
+  <h2>📋 المستخدمون الموافق عليهم <span class="counter" id="count">0</span></h2>
+  <div class="list" id="approvedList"></div>
+  <button class="btn gray" id="refreshBtn" type="button" style="margin-top:12px">🔄 تحديث القائمة</button>
+</div>
+
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const CFG = "akk_admin_cfg_v2";
+
+/* ============ إعدادات ============ */
+function getCfg(){
+  return {
+    user:  $("ghUser").value.trim(),
+    repo:  $("ghRepo").value.trim(),
+    token: $("ghToken").value.trim()
+  };
+}
+function loadCfg(){
+  try{
+    const c = JSON.parse(localStorage.getItem(CFG)) || {};
+    $("ghUser").value  = c.user  || "abdhabdllmohmoad-eng";
+    $("ghRepo").value  = c.repo  || "akk-platform";
+    $("ghToken").value = c.token || "";
+  }catch(e){}
+}
+$("saveBtn").addEventListener("click", ()=>{
+  const c = getCfg();
+  if (!c.user || !c.repo || !c.token) return showMsg("أكمل جميع الحقول","err");
+  localStorage.setItem(CFG, JSON.stringify(c));
+  showMsg("✅ تم الحفظ على هذا الجهاز","ok");
+});
+
+/* ============ رسائل ============ */
+function showMsg(text, type){
+  const el = $("statusMsg");
+  el.textContent = text; el.className = "msg " + type;
+  setTimeout(()=>{ if(el.textContent===text) el.className="msg"; }, 6000);
+}
+
+/* ============ الفرز ============ */
+function parseAll(text){
+  // فاصل بين الرسائل: "طلب تفعيل حساب"
+  const blocks = text.split(/(?=طلب تفعيل حساب Akk|🔔 طلب تفعيل)/g)
+                     .filter(b => b.match(/الهاتف/) && b.match(/\d{7,}/));
+  const results = [];
+  blocks.forEach(block => {
+    const r = parseOne(block);
+    if (r && r.phone && r.joined) results.push(r);
+  });
+  return results;
+}
+
+function parseOne(text){
+  const out = { name:"", phone:"", joined:0, joinedText:"" };
+
+  const nameM = text.match(/(?:الاسم|👤)\s*[:：]\s*([^\n\r]+)/);
+  if (nameM) out.name = nameM[1].trim();
+
+  const phoneM = text.match(/(?:الهاتف|📱)\s*[:：]\s*(\d[\d\s\-]*)/);
+  if (phoneM) out.phone = phoneM[1].replace(/[\s\-\(\)\.]/g,"").trim();
+
+  const joinM = text.match(/لحظة الانضمام\s*\(?ms\)?\s*[:：]\s*(\d{10,})/i)
+             || text.match(/\b(\d{13})\b/);
+  if (joinM) out.joined = parseInt(joinM[1], 10);
+
+  const dateM = text.match(/(?:الانضمام|📅)\s*[:：]\s*([\d\/]+\s+[\d:]+)/);
+  if (dateM) out.joinedText = dateM[1].trim();
+
+  return out;
+}
+
+let parsedList = [];
+
+$("parseBtn").addEventListener("click", ()=>{
+  const txt = $("msgInput").value;
+  if (!txt.trim()) return showMsg("الصق رسائل تليجرام أولاً","err");
+
+  parsedList = parseAll(txt);
+
+  if (parsedList.length === 0)
+    return showMsg("❌ لم أجد أي مستخدم في النص — تأكد من التنسيق","err");
+
+  const list = $("parseList");
+  list.innerHTML = "";
+  parsedList.forEach(u => {
+    const div = document.createElement("div");
+    div.className = "fileRow";
+    div.innerHTML =
+      '<div class="name">👤 ' + esc(u.name || "—") + '</div>' +
+      '<div class="phone">' + u.phone + '</div>' +
+      '<div class="tag">جاهز</div>';
+    list.appendChild(div);
+  });
+
+  $("approveBtn").disabled = false;
+  showMsg("✅ تم فرز " + parsedList.length + " مستخدم — راجعهم ثم اضغط الموافقة","ok");
+});
+
+function esc(s){ return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+/* ============ قراءة/كتابة users.json ============ */
+function rawUrl(){
+  const c = getCfg();
+  return "https://raw.githubusercontent.com/" + c.user + "/" + c.repo + "/main/users.json";
+}
+function apiUrl(){
+  const c = getCfg();
+  return "https://api.github.com/repos/" + c.user + "/" + c.repo + "/contents/users.json";
+}
+
+async function fetchUsers(){
+  const c = getCfg();
+  if (!c.token) return { sha:null, data:{ users:[] } };
+
+  try{
+    const r = await fetch(apiUrl() + "?t=" + Date.now(), {
+      headers:{"Authorization":"token " + c.token, "Accept":"application/vnd.github+json"},
+      cache:"no-store"
+    });
+    if (!r.ok) return { sha:null, data:{ users:[] } };
+    const json = await r.json();
+    const text = atob(json.content.replace(/\n/g,""));
+    const decoded = decodeURIComponent(escape(text));
+    return { sha:json.sha, data: JSON.parse(decoded) };
+  }catch(e){
+    return { sha:null, data:{ users:[] } };
+  }
+}
+
+async function saveUsers(sha, data){
+  const c = getCfg();
+  const jsonStr = JSON.stringify(data, null, 2);
+  const content = btoa(unescape(encodeURIComponent(jsonStr)));
+
+  const body = {
+    message: "Update users.json (" + data.users.length + " users)",
+    content: content,
+    branch: "main"
+  };
+  if (sha) body.sha = sha;
+
+  const res = await fetch(apiUrl(), {
+    method:"PUT",
+    headers:{
+      "Authorization":"token " + c.token,
+      "Content-Type":"application/json",
+      "Accept":"application/vnd.github+json"
+    },
+    body: JSON.stringify(body)
+  });
+
+  if (!res.ok){
+    const err = await res.json().catch(()=>({}));
+    throw new Error(err.message || "فشل الرفع — تحقق من الرمز والصلاحيات");
+  }
+}
+
+/* ============ زر الموافقة ============ */
+$("approveBtn").addEventListener("click", async ()=>{
+  if (parsedList.length === 0) return;
+  const btn = $("approveBtn");
+  btn.disabled = true;
+  btn.textContent = "⏳ جاري الرفع...";
+  showMsg("⏳ جاري قراءة users.json...","info");
+
+  try{
+    const { sha, data } = await fetchUsers();
+    if (!data.users) data.users = [];
+
+    const existing = new Set(data.users.map(u => u.phone));
+    let added = 0, skipped = 0;
+
+    parsedList.forEach(u => {
+      if (existing.has(u.phone)) { skipped++; return; }
+      data.users.push({
+        name: u.name || "",
+        phone: u.phone,
+        joined: u.joined,
+        addedAt: Date.now()
+      });
+      added++;
+    });
+
+    data.updated = new Date().toISOString();
+
+    await saveUsers(sha, data);
+
+    showMsg("✅ تمت الإضافة: " + added + " مستخدم" + (skipped? " — تم تجاهل " + skipped + " موجودين مسبقاً":"") , "ok");
+    $("msgInput").value = "";
+    $("parseList").innerHTML = "";
+    parsedList = [];
+    btn.textContent = "✅ موافقة وإضافة إلى users.json";
+    btn.disabled = true;
+
+    await loadApproved();
+  }catch(e){
+    showMsg("❌ " + e.message,"err");
+    btn.textContent = "✅ موافقة وإضافة إلى users.json";
+    btn.disabled = false;
+  }
+});
+
+/* ============ قائمة الموافقين ============ */
+async function loadApproved(){
+  const list = $("approvedList");
+  list.innerHTML = '<div style="text-align:center;color:#8aa0b8;padding:12px">⏳ تحميل...</div>';
+  try{
+    const r = await fetch(rawUrl() + "?t=" + Date.now(), {cache:"no-store"});
+    if (!r.ok) throw new Error("لم يتم العثور على users.json");
+    const data = await r.json();
+    const users = data.users || [];
+    $("count").textContent = users.length;
+
+    if (users.length === 0){
+      list.innerHTML = "";
+      return;
+    }
+    list.innerHTML = "";
+    users.slice().reverse().forEach(u => {
+      const div = document.createElement("div");
+      div.className = "fileRow";
+      div.innerHTML =
+        '<div class="name">👤 ' + esc(u.name || "—") + '</div>' +
+        '<div class="phone">' + u.phone + '</div>' +
+        '<div class="tag">✅</div>';
+      list.appendChild(div);
+    });
+  }catch(e){
+    list.innerHTML = '<div style="text-align:center;color:#ff8a8a;padding:12px">' + e.message + '</div>';
+  }
+}
+$("refreshBtn").addEventListener("click", loadApproved);
+
+/* ============ تشغيل ============ */
+loadCfg();
+loadApproved();
+</script>
+</body>
+</html>

@@ -86,7 +86,7 @@ input:focus{border-color:var(--gold)}
 <label>كلمة المرور</label>
 <input type="password" id="regPass" placeholder="••••••••" required>
 <button class="btn primary" type="submit">إنشاء الحساب</button>
-<p class="hint">بعد التسجيل سيُنسخ نص رسالتك تلقائياً وتُفتح تليجرام.</p>
+<p class="hint">بعد التسجيل ستُنسخ رسالتك تلقائياً وتفتح تليجرام لإرسالها للفريق.</p>
 </form>
 <div id="authMsg" class="msg"></div>
 </div>
@@ -95,32 +95,27 @@ input:focus{border-color:var(--gold)}
 <div class="waiting">
 <div class="spin"></div>
 <h2>حسابك قيد المراجعة</h2>
-<p>أرسل رسالة التفعيل إلى الفريق على تليجرام.</p>
+<p>أرسل بياناتك إلى الفريق على تليجرام.</p>
 </div>
-
 <div class="steps">
 <b>① اضغط الزر الأصفر</b><br>
-يُحمَّل ملفك، وتُنسخ الرسالة تلقائياً، وتفتح تليجرام.<br>
+تُنسخ رسالتك تلقائياً وتفتح تليجرام.<br>
 <b>② في تليجرام</b><br>
-اضغط ضغطة طويلة → <b>لصق</b> → إرسال.<br>
-<b>③ انتظر</b> — يُفعّل حسابك تلقائياً عند رفع الفريق للملف.
+ضغطة طويلة → لصق → إرسال.<br>
+<b>③ انتظر</b> — يُفعّل حسابك تلقائياً عند الموافقة.
 </div>
-
 <button class="btn primary" id="sendBtn" type="button">📩 إرسال بياناتي إلى الفريق</button>
 <button class="btn copy" id="copyBtn" type="button">📋 نسخ الرسالة فقط</button>
 <a class="btn ghost" id="tgBtn" target="_blank" rel="noopener" style="margin-top:10px;text-align:center">✈ فتح تليجرام</a>
-
 <div class="steps" style="margin-top:14px">
 <b>الرسالة التي ستُنسخ:</b>
 <div class="msgPreview" id="msgPreview">—</div>
 </div>
-
 <div class="statusBox">
 <div>حالة الحساب: <b id="pStatus">بانتظار المراجعة</b></div>
 <div style="margin-top:6px">رقمك: <b id="pPhone">—</b></div>
 <div style="margin-top:6px">آخر فحص: <b id="pCheck">—</b></div>
 </div>
-
 <button class="btn ghost" id="pendingLogout" type="button">تسجيل خروج</button>
 </div>
 
@@ -154,7 +149,7 @@ input:focus{border-color:var(--gold)}
 const GITHUB_USER  = "abdhabdllmohmoad-eng";
 const GITHUB_REPO  = "akk-platform";
 const GITHUB_BRANCH= "main";
-const RAW_BASE     = "https://raw.githubusercontent.com/" + GITHUB_USER + "/" + GITHUB_REPO + "/" + GITHUB_BRANCH + "/";
+const USERS_URL    = "https://raw.githubusercontent.com/" + GITHUB_USER + "/" + GITHUB_REPO + "/" + GITHUB_BRANCH + "/users.json";
 const TELEGRAM_USER= "Akk_Currency";
 const TELEGRAM_URL = "https://t.me/" + TELEGRAM_USER;
 const RATE         = 1.5863;
@@ -165,14 +160,13 @@ const SESSION_KEY  = "akk_session_v1";
 const $ = id => document.getElementById(id);
 const hashPass = s => { let h=5381; for(let i=0;i<s.length;i++) h=((h<<5)+h)^s.charCodeAt(i); return (h>>>0).toString(16); };
 const normPhone = p => String(p).replace(/[\s\-\(\)\.]/g,"").trim();
-const esc = s => String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmtNum = n => n.toLocaleString("en-US",{minimumFractionDigits:4,maximumFractionDigits:4});
 const fmtDate = ts => { const d=new Date(ts),p=n=>String(n).padStart(2,"0"); return d.getFullYear()+"/"+p(d.getMonth()+1)+"/"+p(d.getDate())+" "+p(d.getHours())+":"+p(d.getMinutes())+":"+p(d.getSeconds()); };
 const fmtElapsed = ms => { let s=Math.floor(ms/1000),d=Math.floor(s/86400);s%=86400;let h=Math.floor(s/3600);s%=3600;let m=Math.floor(s/60);s%=60;return d+" يوم "+h+" س "+m+" د "+s+" ث"; };
 
-const loadUsers = () => { try{ return JSON.parse(localStorage.getItem(USERS_KEY))||{}; }catch(e){ return {}; } };
-const saveUsers = u => localStorage.setItem(USERS_KEY, JSON.stringify(u));
-let users = loadUsers();
+const loadLocal = () => { try{ return JSON.parse(localStorage.getItem(USERS_KEY))||{}; }catch(e){ return {}; } };
+const saveLocal = u => localStorage.setItem(USERS_KEY, JSON.stringify(u));
+let localUsers = loadLocal();
 let session = localStorage.getItem(SESSION_KEY);
 let currentUser = null;
 let tickTimer = null, checkTimer = null;
@@ -188,13 +182,17 @@ document.querySelectorAll(".tab").forEach(tab => tab.addEventListener("click", (
   $("authMsg").className = "msg";
 }));
 
+/* التحقق من الموافقة: يبحث عن الرقم في users.json */
 async function checkApproval(phone){
   try{
-    const res = await fetch(RAW_BASE + phone + ".html?t=" + Date.now(), {method:"GET", cache:"no-store"});
-    return res.ok;
-  }catch(e){ return false; }
+    const res = await fetch(USERS_URL + "?t=" + Date.now(), {cache:"no-store"});
+    if (!res.ok) return null;
+    const data = await res.json();
+    return (data.users || []).find(u => u.phone === phone) || null;
+  }catch(e){ return null; }
 }
 
+/* ========== التسجيل ========== */
 $("registerForm").addEventListener("submit", e => {
   e.preventDefault();
   const name = $("regName").value.trim();
@@ -203,9 +201,9 @@ $("registerForm").addEventListener("submit", e => {
   if (name.length < 2) return authMsg("الرجاء إدخال الاسم.","err");
   if (phone.replace(/\D/g,"").length < 7) return authMsg("رقم الهاتف غير صحيح.","err");
   if (pass.length < 4) return authMsg("كلمة المرور قصيرة.","err");
-  if (users[phone]) return authMsg("الرقم مسجّل مسبقاً، سجّل الدخول.","err");
-  users[phone] = { name, phone, pass: hashPass(pass), joined: Date.now() };
-  saveUsers(users);
+  if (localUsers[phone]) return authMsg("الرقم مسجّل مسبقاً، سجّل الدخول.","err");
+  localUsers[phone] = { name, phone, pass: hashPass(pass), joined: Date.now() };
+  saveLocal(localUsers);
   session = phone;
   localStorage.setItem(SESSION_KEY, session);
   $("registerForm").reset();
@@ -213,20 +211,28 @@ $("registerForm").addEventListener("submit", e => {
   setTimeout(sendToTelegram, 500);
 });
 
+/* ========== الدخول ========== */
 $("loginForm").addEventListener("submit", async e => {
   e.preventDefault();
   const phone = normPhone($("loginPhone").value);
   const pass = $("loginPass").value;
-  const u = users[phone];
+  const u = localUsers[phone];
   if (!u) return authMsg("لا يوجد حساب بهذا الرقم على هذا الجهاز.","err");
   if (u.pass !== hashPass(pass)) return authMsg("كلمة المرور غير صحيحة.","err");
   session = phone;
   localStorage.setItem(SESSION_KEY, session);
   $("loginForm").reset();
   const approved = await checkApproval(phone);
-  if (approved) openDashboard(); else openPending();
+  if (approved){
+    localUsers[phone].joined = approved.joined || localUsers[phone].joined;
+    saveLocal(localUsers);
+    openDashboard();
+  } else {
+    openPending();
+  }
 });
 
+/* ========== نص الرسالة ========== */
 function buildMessage(u){
   return "🔔 طلب تفعيل حساب Akk\n"
        + "───────────────\n"
@@ -234,13 +240,12 @@ function buildMessage(u){
        + "📱 الهاتف: " + u.phone + "\n"
        + "📅 الانضمام: " + fmtDate(u.joined) + "\n"
        + "⏱ لحظة الانضمام (ms): " + u.joined + "\n"
-       + "💠 العملة: Akk\n"
-       + "───────────────\n"
-       + "⚠️ الفريق: أنشئ ملفاً باسم " + u.phone + ".html وارفعه في المستودع.";
+       + "💠 العملة: Akk";
 }
 
+/* ========== شاشة الانتظار ========== */
 function openPending(){
-  const u = users[session];
+  const u = localUsers[session];
   if (!u){ session=null; localStorage.removeItem(SESSION_KEY); return; }
   $("authView").classList.add("hidden");
   $("dashView").classList.add("hidden");
@@ -259,13 +264,17 @@ function applyApproval(approved){
   if (approved){
     $("pStatus").textContent = "✅ تم قبول حسابك";
     clearInterval(checkTimer);
+    if (approved.joined && localUsers[session]){
+      localUsers[session].joined = approved.joined;
+      saveLocal(localUsers);
+    }
     setTimeout(openDashboard, 900);
   } else {
-    $("pStatus").textContent = "⏳ بانتظار رفع الفريق للملف";
+    $("pStatus").textContent = "⏳ بانتظار مراجعة الفريق";
   }
 }
 
-/* ========== نسخ نص إلى الحافظة (يعمل على كل الأجهزة) ========== */
+/* ========== نسخ للحافظة ========== */
 async function copyText(text){
   try{
     if (navigator.clipboard && window.isSecureContext){
@@ -273,13 +282,10 @@ async function copyText(text){
       return true;
     }
   }catch(e){}
-  /* fallback قديم */
   try{
     const ta = document.createElement("textarea");
     ta.value = text;
-    ta.style.position = "fixed";
-    ta.style.left = "-9999px";
-    ta.style.top = "0";
+    ta.style.position = "fixed"; ta.style.left = "-9999px";
     document.body.appendChild(ta);
     ta.focus(); ta.select();
     ta.setSelectionRange(0, ta.value.length);
@@ -289,72 +295,22 @@ async function copyText(text){
   }catch(e){ return false; }
 }
 
-function buildAccountHTML(u){
-  return '<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8">'
-  + '<title>حساب Akk - ' + esc(u.phone) + '</title>'
-  + '<style>body{font-family:system-ui;background:#0a0e14;color:#e7ecf3;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:20px}'
-  + '.card{background:#111823;border:1px solid #1f2b3a;border-radius:18px;padding:24px;max-width:470px;width:100%}'
-  + 'h1{margin:0 0 4px;font-size:20px}.sub{color:#7d8ea3;font-size:12px;margin-bottom:14px}'
-  + '.bal{font-size:32px;font-weight:900;color:#16c784;text-align:center;margin:16px 0;direction:ltr;word-break:break-all}'
-  + '.r{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px dashed #1f2b3a;font-size:14px}'
-  + '.r span{color:#8aa0b8}.ltr{direction:ltr}.foot{margin-top:14px;color:#5d6f85;font-size:11.5px;text-align:center;line-height:1.8}'
-  + '</style></head><body><div class="card">'
-  + '<h1>Akk — ملف الحساب</h1>'
-  + '<div class="sub">ملف رسمي لمنصة Akk</div>'
-  + '<div class="bal" id="b">0</div>'
-  + '<div class="r"><span>الاسم</span><b>' + esc(u.name) + '</b></div>'
-  + '<div class="r"><span>الهاتف</span><b class="ltr">' + esc(u.phone) + '</b></div>'
-  + '<div class="r"><span>رقم الحساب</span><b class="ltr">AKK-' + esc(u.phone) + '</b></div>'
-  + '<div class="r"><span>تاريخ الانضمام</span><b>' + fmtDate(u.joined) + '</b></div>'
-  + '<div class="r"><span>لحظة الانضمام (ms)</span><b class="ltr">' + u.joined + '</b></div>'
-  + '<div class="r"><span>المعدل</span><b class="ltr">' + RATE + ' Akk/min</b></div>'
-  + '<div class="r"><span>المدة</span><b id="e">—</b></div>'
-  + '<div class="foot">العملة: Akk — التعدين تلقائي بدون نقر يومي</div>'
-  + '</div><script>var J=' + u.joined + ',R=' + RATE + ';'
-  + 'function t(){var ms=Date.now()-J;'
-  + 'document.getElementById("b").textContent=(ms/60000*R).toLocaleString("en-US",{minimumFractionDigits:4,maximumFractionDigits:4})+" Akk";'
-  + 'var s=Math.floor(ms/1000),d=Math.floor(s/86400);s%=86400;'
-  + 'var h=Math.floor(s/3600);s%=3600;var m=Math.floor(s/60);s%=60;'
-  + 'document.getElementById("e").textContent=d+" يوم "+h+" س "+m+" د "+s+" ث";}'
-  + 't();setInterval(t,1000);<\/script></body></html>';
-}
-
 async function sendToTelegram(){
-  const u = users[session]; if (!u) return;
-  const text = buildMessage(u);
-
-  /* 1) نسخ الرسالة للحافظة أولاً */
-  const copied = await copyText(text);
-
-  /* 2) تنزيل الملف */
-  const html = buildAccountHTML(u);
-  const blob = new Blob([html], {type:"text/html;charset=utf-8"});
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement("a");
-  a.href = url;
-  a.download = u.phone + ".html";
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(()=>URL.revokeObjectURL(url), 2000);
-
-  /* 3) إشعار */
-  $("pStatus").textContent = copied ? "✅ نُسخت الرسالة — افتح تليجرام والصقها" : "⚠️ انسخ الرسالة يدوياً ثم افتح تليجرام";
-
-  /* 4) فتح تليجرام (بدون text لتفادي مشاكل الملء) */
+  const u = localUsers[session]; if (!u) return;
+  const copied = await copyText(buildMessage(u));
+  $("pStatus").textContent = copied ? "✅ نُسخت الرسالة — افتح تليجرام والصقها" : "⚠️ انسخ الرسالة يدوياً";
   setTimeout(()=>{ window.location.href = TELEGRAM_URL; }, 900);
 }
-
 $("sendBtn").addEventListener("click", sendToTelegram);
-
 $("copyBtn").addEventListener("click", async ()=>{
-  const u = users[session]; if (!u) return;
+  const u = localUsers[session]; if (!u) return;
   const ok = await copyText(buildMessage(u));
-  $("pStatus").textContent = ok ? "✅ تم نسخ الرسالة" : "❌ تعذّر النسخ — حدد النص يدوياً";
+  $("pStatus").textContent = ok ? "✅ تم نسخ الرسالة" : "❌ تعذّر النسخ — حدد يدوياً";
 });
 
+/* ========== لوحة التعدين ========== */
 function openDashboard(){
-  const u = users[session];
+  const u = localUsers[session];
   if (!u) return;
   clearInterval(checkTimer);
   $("pendingView").classList.add("hidden");
@@ -371,7 +327,6 @@ function openDashboard(){
   clearInterval(tickTimer);
   tickTimer = setInterval(tick, 100);
 }
-
 function tick(){
   if (!currentUser) return;
   const ms = Date.now() - currentUser.joined;
@@ -392,9 +347,15 @@ $("logoutBtn").addEventListener("click", logout);
 $("pendingLogout").addEventListener("click", logout);
 
 (async function init(){
-  if (session && users[session]){
+  if (session && localUsers[session]){
     const approved = await checkApproval(session);
-    if (approved) openDashboard(); else openPending();
+    if (approved){
+      localUsers[session].joined = approved.joined || localUsers[session].joined;
+      saveLocal(localUsers);
+      openDashboard();
+    } else {
+      openPending();
+    }
   }
 })();
 </script>
